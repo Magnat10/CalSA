@@ -3,19 +3,85 @@
 const POWER = { Constructor: 4, Smelter: 4, Assembler: 15, Manufacturer: 55, Refinery: 30, Foundry: 16, Packager: 10, Blender: 75, Converter: 250, QuantumEncoder: 2000 };
 export const BELTS = { 1: 60, 2: 120, 3: 270, 4: 480, 5: 780, 6: 1200 };
 
+export const ITEM_NAMES = {};
+export const IS_FLUID = {};
+
 export function clean(x = '') { 
     return x.replace(/^Desc_/, '').replace(/^Build_/, '').replace(/^BP_EquipmentDescriptor/, '').replace(/Mk([1-9])/g, ' Mk.$1').replace(/_C$/, '').replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim(); 
 }
 
-export function normalize(raw) { 
-    return Object.values(raw).flatMap(v => Array.isArray(v) ? v : [v]).filter(r => r?.products?.length && r.duration > 0 && !r.inBuildGun && !r.inCustomizer && !r.inWorkshop && r.producedIn?.length).map((r, i) => ({ ...r, id: r.className || `recipe_${i}` })); 
+export function normalize(rawData) { 
+    // 1. Spieldatenbank aufbauen (Namen und Flüssigkeiten identifizieren)
+    for (const group of rawData) {
+        if (group.Classes) {
+            for (const cls of group.Classes) {
+                if (cls.mDisplayName) {
+                    ITEM_NAMES[cls.ClassName] = cls.mDisplayName;
+                }
+                if (cls.mForm === 'RF_LIQUID' || cls.mForm === 'RF_GAS') {
+                    IS_FLUID[cls.ClassName] = true;
+                }
+            }
+        }
+    }
+
+    // 2. Parser für Unreal Engine Property Strings
+    const parseItems = (str) => {
+        if (!str) return [];
+        const regex = /ItemClass="[^"']*'[^"']*?\.([^"']+)'",\s*Amount=([0-9.]+)/g;
+        let match;
+        const items = [];
+        while ((match = regex.exec(str)) !== null) {
+            const id = match[1];
+            let amt = parseFloat(match[2]);
+            // Flüssigkeiten/Gase aus Rohdaten werden durch 1000 geteilt (m³)
+            if (IS_FLUID[id]) amt /= 1000;
+            items.push({ item: id, amount: amt });
+        }
+        return items;
+    };
+
+    const parseMachines = (str) => {
+        if (!str) return [];
+        const regex = /"[^"]*?\.([^"']+)"/g;
+        let match;
+        const machines = [];
+        while ((match = regex.exec(str)) !== null) {
+            machines.push(match[1]);
+        }
+        return machines;
+    };
+
+    let allRecipes = [];
+    for (const group of rawData) {
+        if (group.NativeClass.includes('FGRecipe') || group.Classes[0]?.mIngredients) {
+            allRecipes = allRecipes.concat(group.Classes.filter(c => c.mIngredients && c.mProduct));
+        }
+    }
+
+    return allRecipes.map((r) => {
+        const ingredients = parseItems(r.mIngredients);
+        const products = parseItems(r.mProduct);
+        const producedIn = parseMachines(r.mProducedIn).filter(m => !m.includes('WorkBench') && !m.includes('Workshop') && !m.includes('BuildGun') && !m.includes('AutomatedWorkBench'));
+        const duration = parseFloat(r.mManufactoringDuration || "0");
+        
+        return {
+            id: r.ClassName,
+            name: r.mDisplayName || ITEM_NAMES[r.ClassName] || clean(r.ClassName),
+            duration: duration,
+            ingredients: ingredients,
+            products: products,
+            producedIn: producedIn,
+            alternate: r.mDisplayName ? r.mDisplayName.toLowerCase().startsWith('alternativ') || r.mDisplayName.toLowerCase().includes('alternate') : r.ClassName.startsWith('Recipe_Alternate_')
+        };
+    }).filter(r => r.products.length > 0 && r.duration > 0 && r.producedIn.length > 0);
 }
 
 export function catalog(rs) { 
     const m = new Map(); 
     for (const r of rs) {
         for (const p of r.products) { 
-            m.has(p.item) || m.set(p.item, { id: p.item, name: clean(p.item), recipes: [] }); 
+            m.has(p.item) || m.set(p.item, { id: p.item, name: ITEM_NAMES[p.item] || clean(p.item), recipes: [] }); 
             m.get(p.item).recipes.push(r); 
         }
     }
@@ -23,15 +89,17 @@ export function catalog(rs) {
 }
 
 export function category(n) { 
-    if (/ore|coal|bauxite|sulfur|quartz|limestone|sam/i.test(n)) return 'Rohstoffe'; 
-    if (/ingot/i.test(n)) return 'Barren'; 
-    if (/water|oil|fuel|acid|solution|residue|nitrogen/i.test(n)) return 'Fluids'; 
-    if (/wire|cable|circuit|computer|quickwire|limiter/i.test(n)) return 'Elektronik'; 
+    if (/ore|coal|bauxite|sulfur|quartz|limestone|sam/i.test(n) || /erz|kohle|schwefel|stein/i.test(n)) return 'Rohstoffe'; 
+    if (/ingot|barren/i.test(n)) return 'Barren'; 
+    if (/water|oil|fuel|acid|solution|residue|nitrogen|wasser|öl|säure|treibstoff/i.test(n)) return 'Fluids'; 
+    if (/wire|cable|circuit|computer|quickwire|limiter|draht|kabel|platine/i.test(n)) return 'Elektronik'; 
     return 'Bauteile'; 
 }
 
 const baseMachine = id => { 
-    const name = clean(id), family = Object.keys(POWER).find(x => name.includes(x)) || name; 
+    const engName = clean(id);
+    const name = ITEM_NAMES[id] || engName;
+    const family = Object.keys(POWER).find(x => engName.includes(x)) || engName; 
     return { id, name, family, power: POWER[family] || 0 }; 
 }
 
@@ -40,9 +108,8 @@ function configuredMachine(id, opt, itemId) {
     const cfg = opt.machineConfig?.[itemId] || {}; 
     const tier = Math.max(1, +cfg.tier || 1); 
     const clock = Math.min(250, Math.max(1, +cfg.clock || 100)); 
-    const name = b.name.replace(/ Mk\.\d+/, '') + (tier > 1 ? ` Mk.${tier}` : b.name.match(/Mk\.\d+/) ? ' Mk.1' : ''); 
+    const name = b.name.replace(/ Mk\.\d+/, '') + (tier > 1 ? ` Mk.${tier}` : b.name.match(/Mk\.\d+/)?' Mk.1':''); 
     
-    // UPDATE 1.0/1.2: Stromverbrauch skaliert linear mit dem Takt (clock / 100). Der alte Exponent (1.321929) entfällt.
     return { 
         ...b, 
         name, 
@@ -54,7 +121,6 @@ function configuredMachine(id, opt, itemId) {
 }
 
 export function solve(itemId, rate, recipes, opt = {}) { 
-    // 1. ITERATIVER MATHE-SOLVER (Pool-System für Nebenprodukte & Loops)
     const itemBalance = { [itemId]: -rate }; 
     const machineCounts = {}; 
 
@@ -68,7 +134,6 @@ export function solve(itemId, rate, recipes, opt = {}) {
     let modified = true;
     let iter = 0;
     
-    // Solange wir von einem Item ein Defizit haben (< -1e-5), rechnen wir weiter (max 1000 Durchläufe für Sicherheit)
     while (modified && iter < 1000) {
         modified = false;
         iter++;
@@ -82,9 +147,8 @@ export function solve(itemId, rate, recipes, opt = {}) {
                     const neededMachines = (-amount) / outputPerMachine;
 
                     machineCounts[r.id] = (machineCounts[r.id] || 0) + neededMachines;
-                    itemBalance[id] = 0; // Defizit für dieses Item gedeckt
+                    itemBalance[id] = 0; 
 
-                    // Alle produzierten Items (inkl. Nebenprodukte) dem Pool hinzufügen
                     for (const p of r.products) {
                         if (p.item !== id) {
                             const byRate = (p.amount * 60 / r.duration) * m.speed * neededMachines;
@@ -92,33 +156,31 @@ export function solve(itemId, rate, recipes, opt = {}) {
                         }
                     }
 
-                    // Alle benötigten Zutaten vom Pool abziehen
                     for (const ing of r.ingredients) {
                         const ingRate = (ing.amount * 60 / r.duration) * m.speed * neededMachines;
                         itemBalance[ing.item] = (itemBalance[ing.item] || 0) - ingRate;
                     }
 
                     modified = true;
-                    break; // Iteration neu starten, da sich das Balance-Objekt geändert hat
+                    break; 
                 }
             }
         }
     }
 
-    // 2. GRAPH-AGGREGATION (Knoten und Kanten erstellen)
     const nodes = [];
     const edges = [];
     const warnings = [];
     const nodeMap = {}; 
 
-    // Produktions-Knoten aus den ermittelten Maschinen
     for (const [rId, count] of Object.entries(machineCounts)) {
         if (count > 1e-5) {
             const r = recipes.find(x => x.id === rId);
             const primaryItem = r.products[0].item;
             const m = configuredMachine(r.producedIn[0], opt, primaryItem);
             const nid = `prod_${rId}`;
-            const n = { id: nid, type: 'prod', itemId: primaryItem, name: r.name, rate: count * (r.products[0].amount * 60 / r.duration) * m.speed, count, machine: m, recipe: r, depth: -1, children: [] };
+            const rawName = ITEM_NAMES[primaryItem] || clean(primaryItem);
+            const n = { id: nid, type: 'prod', itemId: primaryItem, name: r.name || rawName, rate: count * (r.products[0].amount * 60 / r.duration) * m.speed, count, machine: m, recipe: r, depth: -1, children: [] };
             nodes.push(n);
             for (const p of r.products) {
                 if (!nodeMap[p.item]) nodeMap[p.item] = nid;
@@ -126,17 +188,15 @@ export function solve(itemId, rate, recipes, opt = {}) {
         }
     }
 
-    // Rohstoff-Knoten für die übrig gebliebenen Defizite (Erze, Wasser etc.)
     for (const [id, amount] of Object.entries(itemBalance)) {
         if (amount < -1e-5) {
             const nid = `raw_${id}`;
-            const n = { id: nid, type: 'raw', itemId: id, name: clean(id), rate: -amount, depth: -1, children: [] };
+            const n = { id: nid, type: 'raw', itemId: id, name: ITEM_NAMES[id] || clean(id), rate: -amount, depth: -1, children: [] };
             nodes.push(n);
             nodeMap[id] = nid;
         }
     }
 
-    // Kanten (Förderbänder) verbinden Provider mit Konsumenten
     for (const [rId, count] of Object.entries(machineCounts)) {
         if (count > 1e-5) {
             const r = recipes.find(x => x.id === rId);
@@ -156,14 +216,13 @@ export function solve(itemId, rate, recipes, opt = {}) {
                     
                     edges.push({ from: providerId, to: consumerId, itemId: ing.item, flow, mk, cap, lines, bottleneck });
                     if (bottleneck) {
-                        warnings.push(`${clean(ing.item)}: ${flow.toFixed(1)}/min benötigt ${lines}× Belt Mk.${mk}`);
+                        warnings.push(`${ITEM_NAMES[ing.item] || clean(ing.item)}: ${flow.toFixed(1)}/min benötigt ${lines}× Belt Mk.${mk}`);
                     }
                 }
             }
         }
     }
 
-    // Topologische Tiefe berechnen (für den UI-Netzwerkgraphen)
     const targetNodeId = nodeMap[itemId];
     if (targetNodeId) {
         const targetNode = nodes.find(n => n.id === targetNodeId);
@@ -190,10 +249,10 @@ export function solve(itemId, rate, recipes, opt = {}) {
     const maxD = Math.max(0, ...nodes.map(n => n.depth));
     nodes.forEach(n => { if (n.depth === -1) n.depth = maxD + 1; });
 
-    // 3. UI-BAUMSTRUKTUR (Rekursiv für die Listenansicht, mit Loop-Schutz)
     function buildTree(currentId, need, depth = 0, path = new Set()) {
+        const rawName = ITEM_NAMES[currentId] || clean(currentId);
         if (path.has(currentId)) {
-            return { id: `loop_${currentId}_${depth}`, type: 'raw', itemId: currentId, name: clean(currentId) + ' (Kreislauf)', rate: need, depth, children: [] };
+            return { id: `loop_${currentId}_${depth}`, type: 'raw', itemId: currentId, name: rawName + ' (Kreislauf)', rate: need, depth, children: [] };
         }
 
         const providerRecipeEntry = Object.entries(machineCounts).find(([rId, count]) => {
@@ -202,7 +261,7 @@ export function solve(itemId, rate, recipes, opt = {}) {
         });
 
         if (!providerRecipeEntry || providerRecipeEntry[1] < 1e-5) {
-            return { id: `t_raw_${currentId}_${depth}`, type: 'raw', itemId: currentId, name: clean(currentId), rate: need, depth, children: [] };
+            return { id: `t_raw_${currentId}_${depth}`, type: 'raw', itemId: currentId, name: rawName, rate: need, depth, children: [] };
         }
 
         const [rId] = providerRecipeEntry;
@@ -213,7 +272,7 @@ export function solve(itemId, rate, recipes, opt = {}) {
         const outputPerMachine = (prod.amount * 60 / r.duration) * m.speed;
         const dedicatedMachines = need / outputPerMachine;
 
-        const n = { id: `t_prod_${rId}_${depth}`, type: 'prod', itemId: currentId, name: clean(currentId), rate: need, count: dedicatedMachines, machine: m, recipe: r, depth, children: [] };
+        const n = { id: `t_prod_${rId}_${depth}`, type: 'prod', itemId: currentId, name: rawName, rate: need, count: dedicatedMachines, machine: m, recipe: r, depth, children: [] };
 
         path.add(currentId);
         for (const ing of r.ingredients) {
@@ -226,7 +285,6 @@ export function solve(itemId, rate, recipes, opt = {}) {
 
     const root = buildTree(itemId, rate);
 
-    // 4. TOTALS (Zusammenfassung aggregieren)
     const items = {};
     const raw = {};
     const machines = {};
@@ -259,22 +317,14 @@ export function solve(itemId, rate, recipes, opt = {}) {
     };
 }
 
-/**
- * QUALITÄTSSICHERUNG / TESTFALL
- */
 export function testCalculatePower10() {
-    // Testfall für Update 1.0 Strom: Constructor (Basis 4 MW), 250% Takt
-    // Erwartung: Exakt 10 MW (4 * 2.5) anstatt 13.4 MW wie bei alten Iterationen.
     const opt = { machineConfig: { 'Desc_Test_C': { clock: 250, tier: 1 } } };
-    const cfg = configuredMachine('Desc_ConstructorMk1_C', opt, 'Desc_Test_C');
-    
+    const cfg = configuredMachine('Build_ConstructorMk1_C', opt, 'Desc_Test_C');
     if (cfg.power !== 10) {
-        console.error(`[TEST FEHLGESCHLAGEN] Stromberechnung skaliert nicht linear: Erwartet 10 MW, Erhalten ${cfg.power} MW`);
+        console.error(`[TEST FEHLGESCHLAGEN] Strom: Erwartet 10 MW, Erhalten ${cfg.power} MW`);
         return false;
     }
-    console.log("[TEST ERFOLGREICH] Stromberechnung skaliert linear für Update 1.0 (250% = 10 MW).");
+    console.log("[TEST ERFOLGREICH] Stromberechnung OK.");
     return true;
 }
-
-// Test beim Laden ausführen
 testCalculatePower10();
