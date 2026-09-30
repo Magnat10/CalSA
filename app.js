@@ -1,4 +1,4 @@
-import { normalize, catalog, category, solve } from './calculator.js';
+import { normalize, catalog, category, solve, ITEM_NAMES } from './calculator.js';
 
 const $ = s => document.querySelector(s); const $$ = s => document.querySelectorAll(s);
 const E = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -35,12 +35,12 @@ async function fetchWithFallback(url) {
 async function init() {
     try {
         const [recRes, iconRes, whiteRes] = await Promise.all([
-            fetchWithFallback('DocsRecipes.json'),
+            fetchWithFallback('de.json'), // <--- Hier wurde auf de.json umgestellt
             fetchWithFallback('icons.json'),
             fetchWithFallback('scim-item-whitelist.json')
         ]);
 
-        if (!recRes || !recRes.ok) throw new Error("DocsRecipes.json konnte nicht geladen werden.");
+        if (!recRes || !recRes.ok) throw new Error("de.json konnte nicht geladen werden.");
         
         const rawData = await recRes.json();
         recipes = normalize(rawData);
@@ -179,8 +179,6 @@ function updateDashStats() {
     $('#raw').textContent = plan.totals.rawRate.toFixed(1);
 }
 
-// --- ICON LOGIK FIX ---
-// Wir binden die Funktion an das globale window-Objekt, damit der HTML-Befehl `onerror` sie finden kann!
 window.iconSvg = t => {
     if (t === 'ore') return `<svg viewBox="0 0 24 24"><path d="M7.2 3.5h9.6l4.7 8.1-4.7 8.1H7.2l-4.7-8.1 4.7-8.1Z"/><path d="m8.2 14.8 3.8-7 3.8 7H8.2Z"/></svg>`;
     if (t === 'machine') return `<svg viewBox="0 0 24 24"><path d="M3 20V9l5 3V8l5 3V4h4v5l4 2v9H3Z"/><path d="M7 16h2m3 0h2m3 0h2"/></svg>`;
@@ -194,9 +192,8 @@ function iconFor(id, type = 'item') {
     return `<div class="${cls}">${window.iconSvg(type)}</div>`;
 }
 
-const nm = id => items.find(x => x.id === id)?.name || id.replace(/^Desc_/, '').replace(/_C$/, '');
+const nm = id => ITEM_NAMES[id] || items.find(x => x.id === id)?.name || id.replace(/^Desc_/, '').replace(/_C$/, '');
 
-// --- RENDERER ---
 function render() {
     if (!plan) return;
     const titles = {
