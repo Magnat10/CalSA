@@ -1,0 +1,494 @@
+{
+  "Desc_SmelterMk1_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_SmelterMk1_C.webp"
+  },
+  "Desc_ConstructorMk1_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_ConstructorMk1_C.webp"
+  },
+  "Desc_AssemblerMk1_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_AssemblerMk1_C.webp"
+  },
+  "Desc_FoundryMk1_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_FoundryMk1_C.webp"
+  },
+  "Desc_ManufacturerMk1_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_ManufacturerMk1_C.webp"
+  },
+  "Desc_OilRefinery_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_OilRefinery_C.webp"
+  },
+  "Desc_Packager_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_Packager_C.webp"
+  },
+  "Desc_Blender_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_Blender_C.webp"
+  },
+  "Desc_Converter_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_Converter_C.webp"
+  },
+  "Desc_HadronCollider_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_HadronCollider_C.webp"
+  },
+  "Desc_QuantumEncoder_C": {
+    "type": "machine",
+    "icon": "assets/icons/machines/Desc_QuantumEncoder_C.webp"
+  },
+  "Desc_Stone_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_Stone_C.webp"
+  },
+  "Desc_OreIron_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_OreIron_C.webp"
+  },
+  "Desc_OreCopper_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_OreCopper_C.webp"
+  },
+  "Desc_OreGold_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_OreGold_C.webp"
+  },
+  "Desc_Coal_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_Coal_C.webp"
+  },
+  "Desc_RawQuartz_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_RawQuartz_C.webp"
+  },
+  "Desc_Sulfur_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_Sulfur_C.webp"
+  },
+  "Desc_OreBauxite_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_OreBauxite_C.webp"
+  },
+  "Desc_SAM_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_SAM_C.webp"
+  },
+  "Desc_OreUranium_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_OreUranium_C.webp"
+  },
+  "Desc_IronIngot_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_IronIngot_C.webp"
+  },
+  "Desc_CopperIngot_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CopperIngot_C.webp"
+  },
+  "Desc_GoldIngot_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_GoldIngot_C.webp"
+  },
+  "Desc_SteelIngot_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_SteelIngot_C.webp"
+  },
+  "Desc_AluminumIngot_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_AluminumIngot_C.webp"
+  },
+  "Desc_Cement_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Cement_C.webp"
+  },
+  "Desc_QuartzCrystal_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_QuartzCrystal_C.webp"
+  },
+  "Desc_Silica_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Silica_C.webp"
+  },
+  "Desc_CopperDust_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CopperDust_C.webp"
+  },
+  "Desc_PolymerResin_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PolymerResin_C.webp"
+  },
+  "Desc_PetroleumCoke_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PetroleumCoke_C.webp"
+  },
+  "Desc_AluminumScrap_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_AluminumScrap_C.webp"
+  },
+  "Desc_AlienProtein_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_AlienProtein_C.webp"
+  },
+  "Desc_AlienDNACapsule_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_AlienDNACapsule_C.webp"
+  },
+  "Desc_Water_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Water_C.webp"
+  },
+  "Desc_LiquidOil_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_LiquidOil_C.webp"
+  },
+  "Desc_HeavyOilResidue_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_HeavyOilResidue_C.webp"
+  },
+  "Desc_LiquidFuel_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_LiquidFuel_C.webp"
+  },
+  "Desc_LiquidBiofuel_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_LiquidBiofuel_C.webp"
+  },
+  "Desc_LiquidTurboFuel_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_LiquidTurboFuel_C.webp"
+  },
+  "Desc_AluminaSolution_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_AluminaSolution_C.webp"
+  },
+  "Desc_SulfuricAcid_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_SulfuricAcid_C.webp"
+  },
+  "Desc_NitricAcid_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NitricAcid_C.webp"
+  },
+  "Desc_NitrogenGas_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NitrogenGas_C.webp"
+  },
+  "Desc_IronRod_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_IronRod_C.webp"
+  },
+  "Desc_IronScrew_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_IronScrew_C.webp"
+  },
+  "Desc_IronPlate_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_IronPlate_C.webp"
+  },
+  "Desc_IronPlateReinforced_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_IronPlateReinforced_C.webp"
+  },
+  "Desc_CopperSheet_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CopperSheet_C.webp"
+  },
+  "Desc_AluminumPlate_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_AluminumPlate_C.webp"
+  },
+  "Desc_AluminumCasing_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_AluminumCasing_C.webp"
+  },
+  "Desc_SteelPipe_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_SteelPipe_C.webp"
+  },
+  "Desc_SteelPlate_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_SteelPlate_C.webp"
+  },
+  "Desc_SteelPlateReinforced_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_SteelPlateReinforced_C.webp"
+  },
+  "Desc_ModularFrame_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_ModularFrame_C.webp"
+  },
+  "Desc_ModularFrameHeavy_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_ModularFrameHeavy_C.webp"
+  },
+  "Desc_ModularFrameFused_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_ModularFrameFused_C.webp"
+  },
+  "Desc_Fabric_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Fabric_C.webp"
+  },
+  "Desc_Plastic_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Plastic_C.webp"
+  },
+  "Desc_Rubber_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Rubber_C.webp"
+  },
+  "Desc_Wire_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Wire_C.webp"
+  },
+  "Desc_Cable_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Cable_C.webp"
+  },
+  "Desc_HighSpeedWire_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_HighSpeedWire_C.webp"
+  },
+  "Desc_CircuitBoard_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CircuitBoard_C.webp"
+  },
+  "Desc_CircuitBoardHighSpeed_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CircuitBoardHighSpeed_C.webp"
+  },
+  "Desc_HighSpeedConnector_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_HighSpeedConnector_C.webp"
+  },
+  "Desc_Computer_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Computer_C.webp"
+  },
+  "Desc_ComputerSuper_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_ComputerSuper_C.webp"
+  },
+  "Desc_ModularFrameLightweight_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_ModularFrameLightweight_C.webp"
+  },
+  "Desc_CrystalOscillator_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CrystalOscillator_C.webp"
+  },
+  "Desc_QuantumOscillator_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_QuantumOscillator_C.webp"
+  },
+  "Desc_FluidCanister_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_FluidCanister_C.webp"
+  },
+  "Desc_GasTank_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_GasTank_C.webp"
+  },
+  "Desc_PressureConversionCube_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PressureConversionCube_C.webp"
+  },
+  "Desc_PackagedWater_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PackagedWater_C.webp"
+  },
+  "Desc_PackagedAlumina_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PackagedAlumina_C.webp"
+  },
+  "Desc_PackagedSulfuricAcid_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_PackagedSulfuricAcid_C.webp"
+  },
+  "Desc_PackagedNitricAcid_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PackagedNitricAcid_C.webp"
+  },
+  "Desc_PackagedNitrogenGas_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PackagedNitrogenGas_C.webp"
+  },
+  "Desc_Leaves_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Leaves_C.webp"
+  },
+  "Desc_Mycelia_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Mycelia_C.webp"
+  },
+  "Desc_FlowerPetals_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_FlowerPetals_C.webp"
+  },
+  "Desc_Wood_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Wood_C.webp"
+  },
+  "Desc_GenericBiomass_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_GenericBiomass_C.webp"
+  },
+  "Desc_CompactedCoal_C": {
+    "type": "ore",
+    "icon": "assets/icons/ores/Desc_CompactedCoal_C.webp"
+  },
+  "Desc_PackagedOil_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PackagedOil_C.webp"
+  },
+  "Desc_PackagedOilResidue_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PackagedOilResidue_C.webp"
+  },
+  "Desc_Biofuel_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Biofuel_C.webp"
+  },
+  "Desc_Fuel_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Fuel_C.webp"
+  },
+  "Desc_PackagedBiofuel_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PackagedBiofuel_C.webp"
+  },
+  "Desc_TurboFuel_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_TurboFuel_C.webp"
+  },
+  "Desc_NuclearFuelRod_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NuclearFuelRod_C.webp"
+  },
+  "Desc_PlutoniumFuelRod_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PlutoniumFuelRod_C.webp"
+  },
+  "Desc_Gunpowder_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Gunpowder_C.webp"
+  },
+  "Desc_GunpowderMK2_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_GunpowderMK2_C.webp"
+  },
+  "Desc_Filter_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Filter_C.webp"
+  },
+  "Desc_ColorCartridge_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_ColorCartridge_C.webp"
+  },
+  "BP_EquipmentDescriptorBeacon_C": {
+    "type": "item",
+    "icon": "assets/icons/items/BP_EquipmentDescriptorBeacon_C.webp"
+  },
+  "Desc_HazmatFilter_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_HazmatFilter_C.webp"
+  },
+  "Desc_SpikedRebar_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_SpikedRebar_C.webp"
+  },
+  "Desc_Rebar_Stunshot_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Rebar_Stunshot_C.webp"
+  },
+  "Desc_Rebar_Spreadshot_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Rebar_Spreadshot_C.webp"
+  },
+  "Desc_Rebar_Explosive_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Rebar_Explosive_C.webp"
+  },
+  "Desc_CartridgeStandard_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CartridgeStandard_C.webp"
+  },
+  "Desc_CartridgeSmartProjectile_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CartridgeSmartProjectile_C.webp"
+  },
+  "Desc_CartridgeChaos_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CartridgeChaos_C.webp"
+  },
+  "Desc_NobeliskExplosive_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NobeliskExplosive_C.webp"
+  },
+  "Desc_NobeliskGas_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NobeliskGas_C.webp"
+  },
+  "Desc_NobeliskShockwave_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NobeliskShockwave_C.webp"
+  },
+  "Desc_NobeliskCluster_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NobeliskCluster_C.webp"
+  },
+  "Desc_NobeliskNuke_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NobeliskNuke_C.webp"
+  },
+  "Desc_ElectromagneticControlRod_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_ElectromagneticControlRod_C.webp"
+  },
+  "Desc_UraniumCell_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_UraniumCell_C.webp"
+  },
+  "Desc_NonFissibleUranium_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NonFissibleUranium_C.webp"
+  },
+  "Desc_PlutoniumPellet_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PlutoniumPellet_C.webp"
+  },
+  "Desc_PlutoniumCell_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PlutoniumCell_C.webp"
+  },
+  "Desc_NuclearWaste_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_NuclearWaste_C.webp"
+  },
+  "Desc_PlutoniumWaste_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_PlutoniumWaste_C.webp"
+  },
+  "Desc_Crystal_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Crystal_C.webp"
+  },
+  "Desc_Crystal_mk2_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Crystal_mk2_C.webp"
+  },
+  "Desc_Crystal_mk3_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_Crystal_mk3_C.webp"
+  },
+  "Desc_CrystalShard_C": {
+    "type": "item",
+    "icon": "assets/icons/items/Desc_CrystalShard_C.webp"
+  }
+}

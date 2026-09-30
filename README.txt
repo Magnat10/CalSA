@@ -1,0 +1,1 @@
+Icons werden per technischer ID aufgeloest. Dateinamen muessen der ID in icons.json entsprechen. Empfohlen: quadratische WebP-Dateien, z.B. Desc_IronPlate_C.webp. Fehlt eine Datei, verwendet die App automatisch das semantische SVG-Fallback.
