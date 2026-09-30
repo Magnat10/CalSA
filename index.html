@@ -1,9 +1,119 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>FICSIT Production Planner</title><link rel="stylesheet" href="style.css"></head>
-<body><div class="app-shell">
-<header><div class="brand"><div class="logo">FICS<span>IT</span></div><div class="brand-sub">Production Planner</div></div><div class="motto">PLAN&nbsp;&nbsp;|&nbsp;&nbsp;OPTIMIZE&nbsp;&nbsp;|&nbsp;&nbsp;EXPAND<br><small>A BRIGHTER TOMORROW</small></div><div class="online"><span class="version">Satisfactory 1.0+</span><i></i>Online<button aria-label="Einstellungen">⚙</button></div></header>
-<section class="planner-controls"><label>Produkt auswählen<select id="product"><option>Lade Datenbasis...</option></select></label><label>Zielrate (pro Minute)<div class="rate-wrap"><input id="rate" type="number" min="0.01" step="0.1" value="20"><span>/ min</span></div></label><label>Max. Förderband (Belt)<select id="belt"><option value="auto">Auto (empfohlen)</option><option value="1">Mk.1</option><option value="2">Mk.2</option><option value="3">Mk.3</option><option value="4">Mk.4</option><option value="5">Mk.5</option><option value="6">Mk.6</option></select></label><label>Rezept<select id="recipe"><option>Standard</option></select></label><label>Maschinenstufe<select id="machine-tier"><option value="1">Mk.1</option><option value="2">Mk.2</option><option value="3">Mk.3</option></select></label><label>Takt (%)<input id="clock" type="number" min="1" max="250" value="100"></label></section>
-<nav class="tabs"><button class="active" data-view="network"><span class="tab-icon">⌘</span><b>Netzwerkgraph</b><small>Produktionskette visualisieren</small></button><button data-view="tree"><span class="tab-icon">♜</span><b>Baumstruktur</b><small>Hierarchische Ansicht</small></button><button data-view="items"><span class="tab-icon">◇</span><b>Gegenstände</b><small>Alle benötigten Items</small></button><button data-view="machines"><span class="tab-icon">▥</span><b>Gebäude</b><small>Benötigte Maschinen</small></button></nav>
-<main><section class="main-panel"><div class="panel-title"><div><b id="view-title">⌘ Netzwerkgraph</b><small id="view-subtitle">Materialflüsse und Maschinen</small></div><div class="graph-tools"><button id="fit">⌕</button><button id="zoom-out">−</button><button id="zoom-label">100%</button><button id="zoom-in">＋</button><button id="reset-view">↗</button></div></div><div id="view"></div><div class="legend" id="legend"><span class="blue">➜</span> Materialfluss <span class="grey">➜</span> Förderband <span class="orange">➜</span> Verzweigung/Merge <span class="red">➜</span> Achtung: Engpass</div></section>
-<section class="dashboard"><article class="dash-card"><h3>♜ Baumstruktur <small>Produktionskette</small></h3><div id="tree-preview"></div></article><article class="dash-card"><h3>◇ Gegenstände <small>Alle Items pro Minute</small></h3><div id="items-preview"></div></article><article class="dash-card buildings"><h3>▥ Gebäude <small>Benötigte Maschinen (aggregiert)</small></h3><div id="machines-preview"></div></article><aside class="stats"><div><span>▥</span><small>Gesamt-Maschinen</small><strong id="machines">0.00x</strong></div><div><span>ϟ</span><small>Strombedarf</small><strong id="power">0.0 MW</strong></div><div><span>◇</span><small>Rohstoffe / min</small><strong id="raw">0.0</strong></div></aside></section></main>
-<footer>FICSIT Production Planner&nbsp;&nbsp; | &nbsp;&nbsp;v1.0.0&nbsp;&nbsp; | &nbsp;&nbsp;Data: DocsRecipes.json</footer></div><script type="module" src="app.js"></script></body></html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>FICSIT Production Planner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+    <header>
+        <div class="brand">
+            <div class="logo">FICS<span>YT</span></div>
+            <div class="brand-sub">Production Planner</div>
+        </div>
+        <div class="motto">PLAN&nbsp;&nbsp;|&nbsp;&nbsp;OPTIMIZE&nbsp;&nbsp;|&nbsp;&nbsp;EXPAND<br><small>A BRIGHTER TOMORROW</small></div>
+        <div class="online"><span class="version">Satisfactory 1.2</span><i></i>Online<button aria-label="Einstellungen">⚙</button></div>
+    </header>
+
+    <!-- Kontrollzentrum nach Vorlage V2 -->
+    <section class="planner-controls">
+        <label>Produkt auswählen
+            <select id="product"><option>Lade Datenbasis...</option></select>
+        </label>
+        
+        <label>Zielrate (pro Minute)
+            <div class="rate-wrap">
+                <input id="rate" type="number" min="0.01" step="0.1" value="20">
+                <span>/ min</span>
+            </div>
+        </label>
+        
+        <label>Max. Förderband
+            <select id="belt">
+                <option value="auto">Auto (empfohlen)</option>
+                <option value="1">Mk.1</option>
+                <option value="2">Mk.2</option>
+                <option value="3">Mk.3</option>
+                <option value="4">Mk.4</option>
+                <option value="5">Mk.5</option>
+                <option value="6">Mk.6</option>
+            </select>
+        </label>
+
+        <label>Rezept
+            <select id="recipe"><option>Standard</option></select>
+        </label>
+
+        <!-- NEU: Maschinenkonfiguration -->
+        <label>Maschinenstufe
+            <select id="machine-tier">
+                <option value="1">Mk.1</option>
+                <option value="2">Mk.2</option>
+                <option value="3">Mk.3</option>
+            </select>
+        </label>
+
+        <label>Takt (%)
+            <input id="clock" type="number" min="1" max="250" value="100">
+        </label>
+    </section>
+
+    <nav class="tabs">
+        <button class="active" data-view="network"><span class="tab-icon">⌘</span><b>Netzwerkgraph</b><small>Materialflüsse</small></button>
+        <button data-view="tree"><span class="tab-icon">♜</span><b>Baumstruktur</b><small>Hierarchische Ansicht</small></button>
+        <button data-view="items"><span class="tab-icon">◇</span><b>Gegenstände</b><small>Alle Items pro Minute</small></button>
+        <button data-view="machines"><span class="tab-icon">▥</span><b>Gebäude</b><small>Benötigte Maschinen</small></button>
+    </nav>
+
+    <main>
+        <section class="main-panel">
+            <div class="panel-title">
+                <div><b id="view-title">⌘ Netzwerkgraph</b> <small id="view-subtitle">Materialflüsse und Maschinen</small></div>
+                <div class="graph-tools">
+                    <button id="fit">⌕</button>
+                    <button id="zoom-out">−</button>
+                    <button id="zoom-label">100%</button>
+                    <button id="zoom-in">＋</button>
+                    <button id="reset-view">↗</button>
+                </div>
+            </div>
+            
+            <div id="view"></div>
+            
+            <div class="legend" id="legend">
+                <span class="blue">➜</span> Materialfluss 
+                <span class="grey">➜</span> Förderband 
+                <span class="orange">➜</span> Verzweigung/Merge 
+                <span class="red">➜</span> Achtung: Engpass
+            </div>
+        </section>
+
+        <!-- Dashboard Footer -->
+        <section class="dashboard">
+            <article class="dash-card">
+                <h3>♜ Baumstruktur <small>Vorschau</small></h3>
+                <div id="tree-preview"></div>
+            </article>
+            <article class="dash-card">
+                <h3>◇ Gegenstände <small>Top Items</small></h3>
+                <div id="items-preview"></div>
+            </article>
+            <article class="dash-card buildings">
+                <h3>▥ Gebäude <small>Top Maschinen</small></h3>
+                <div id="machines-preview"></div>
+            </article>
+            <aside class="stats">
+                <div><span>▥</span><small>Gesamt-Maschinen</small><strong id="machines">0.00x</strong></div>
+                <div><span>ϟ</span><small>Strombedarf</small><strong id="power">0.0 MW</strong></div>
+                <div><span>◇</span><small>Rohstoffe / min</small><strong id="raw">0.0</strong></div>
+            </aside>
+        </section>
+    </main>
+
+    <footer>FICSYT Production Planner&nbsp;&nbsp; | &nbsp;&nbsp;v2.0&nbsp;&nbsp; | &nbsp;&nbsp;Data: DocsRecipes.json</footer>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
