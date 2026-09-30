@@ -34,7 +34,6 @@ export function normalize(rawData) {
         while ((match = regex.exec(str)) !== null) {
             const id = match[1];
             let amt = parseFloat(match[2]);
-            // Flüssigkeiten/Gase aus Rohdaten werden durch 1000 geteilt (m³)
             if (IS_FLUID[id]) amt /= 1000;
             items.push({ item: id, amount: amt });
         }
@@ -54,7 +53,7 @@ export function normalize(rawData) {
 
     let allRecipes = [];
     for (const group of rawData) {
-        if (group.NativeClass.includes('FGRecipe') || group.Classes[0]?.mIngredients) {
+        if (group.NativeClass?.includes('FGRecipe') || group.Classes?.[0]?.mIngredients) {
             allRecipes = allRecipes.concat(group.Classes.filter(c => c.mIngredients && c.mProduct));
         }
     }
@@ -121,6 +120,7 @@ function configuredMachine(id, opt, itemId) {
 }
 
 export function solve(itemId, rate, recipes, opt = {}) { 
+    // Professioneller Ledger / Netzwerk-Pool für Materialien
     const itemBalance = { [itemId]: -rate }; 
     const machineCounts = {}; 
 
@@ -134,6 +134,7 @@ export function solve(itemId, rate, recipes, opt = {}) {
     let modified = true;
     let iter = 0;
     
+    // Iterativer Fixpunkt-Solver zur Auflösung von Netto-Bedarfen & Byproducts
     while (modified && iter < 1000) {
         modified = false;
         iter++;
