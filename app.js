@@ -3,6 +3,12 @@ import { normalize, catalog, category, solve } from './calculator.js';
 const $ = s => document.querySelector(s); const $$ = s => document.querySelectorAll(s);
 const E = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Globaler Notfall-Scanner: Fängt Syntax- oder Modulfehler ab und druckt sie auf den Bildschirm
+window.addEventListener('error', function(e) {
+    const view = $('#view');
+    if(view) view.innerHTML = `<div style="padding:20px; color:#ef4444; background:#341919; border:1px solid #702f2f; border-radius:6px; margin:15px;"><b>System-Fehler:</b> ${e.message}</div>`;
+});
+
 let recipes = [];
 let items = [];
 let plan = null;
@@ -10,40 +16,62 @@ let view = 'network';
 let iconRegistry = {};
 let whitelist = null;
 
-// Speicher für individuelle Konfigurationen pro Item
 const config = {
     selectedNodeId: null, 
     recipeSelections: {},
     machineConfig: {}
 };
 
-// State für Graph-Navigation
 const panZoom = { zoom: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 };
+
+// Auto-Cache-Buster: Umgeht den aggressiven Safari/GitHub-Pages Cache
+async function fetchWithFallback(url) {
+    let res = await fetch(url).catch(() => null);
+    if (!res || !res.ok) {
+        res = await fetch(url + '?nocache=' + Date.now()).catch(() => null);
+    }
+    return res;
+}
 
 async function init() {
     try {
         const [recRes, iconRes, whiteRes] = await Promise.all([
-            fetch('DocsRecipes.json').catch(() => null),
-            fetch('icons.json').catch(() => null),
-            fetch('scim-item-whitelist.json').catch(() => null)
+            fetchWithFallback('DocsRecipes.json'),
+            fetchWithFallback('icons.json'),
+            fetchWithFallback('scim-item-whitelist.json')
         ]);
 
-        if (!recRes || !recRes.ok) throw new Error("DocsRecipes.json fehlt oder fehlerhaft");
-        recipes = normalize(await recRes.json());
+        if (!recRes || !recRes.ok) throw new Error("DocsRecipes.json konnte nicht geladen werden (evtl. 404 Fehler). Bitte prüfe den Dateinamen auf GitHub.");
+        
+        const rawData = await recRes.json();
+        recipes = normalize(rawData);
+        
+        if (!recipes || recipes.length === 0) throw new Error("Die Rezept-Datenbank ist leer oder fehlerhaft formatiert.");
+
         iconRegistry = iconRes && iconRes.ok ? await iconRes.json() : {};
-        whitelist = whiteRes && whiteRes.ok ? await whiteRes.json() : {};
+        whitelist = whiteRes && whiteRes.ok ? await whiteRes.json() : null;
 
         const allItems = catalog(recipes);
-        const allowedNames = new Set(Object.values(whitelist.categories || {}).flat());
-        const allowedIds = new Set(Object.values(whitelist.known_scim_ids || {}));
-        items = allItems.filter(i => allowedIds.has(i.id) || allowedNames.has(i.name));
+
+        // Sichere Whitelist-Logik: Falls Whitelist fehlt, werden alle Items zugelassen
+        const catMap = whitelist && whitelist.categories ? whitelist.categories : {};
+        const idMap = whitelist && whitelist.known_scim_ids ? whitelist.known_scim_ids : {};
+        const allowedNames = new Set(Object.values(catMap).flat());
+        const allowedIds = new Set(Object.values(idMap));
+        const hasWhitelist = allowedNames.size > 0 || allowedIds.size > 0;
+
+        items = allItems.filter(i => !hasWhitelist || allowedIds.has(i.id) || allowedNames.has(i.name));
+
+        if (items.length === 0) throw new Error("Nach dem Filtern sind keine Items mehr übrig. Datenbasis defekt.");
 
         const catByName = new Map();
-        Object.entries(whitelist.categories || {}).forEach(([cat, names]) => names.forEach(n => catByName.set(n, cat)));
+        Object.entries(catMap).forEach(([cat, names]) => names.forEach(n => catByName.set(n, cat)));
+        
         const grouped = {};
         items.forEach(i => {
             const k = catByName.get(i.name) || category(i.name);
-            (grouped[k] ??= []).push(i);
+            if (!grouped[k]) grouped[k] = [];
+            grouped[k].push(i);
         });
 
         // Dropdown füllen
@@ -62,8 +90,17 @@ async function init() {
             config.selectedNodeId = defaultItem.id;
             onProductChange();
         }
+
     } catch (e) {
-        $('#view').innerHTML = `<div style="padding: 20px; color: #ef4444;">Initialisierungsfehler: ${E(e.message)}</div>`;
+        // Fehler direkt in der UI anzeigen, damit die App nicht einfach stehen bleibt
+        const viewEl = $('#view');
+        if (viewEl) {
+            viewEl.innerHTML = `<div style="padding: 20px; margin: 15px; color: #ffbbb4; background: #341919; border: 1px solid #702f2f; border-radius: 8px;">
+                <b>⚠ Initialisierungsfehler</b><br><br>${E(e.message)}<br><br>
+                <small>Tipp: Lade die Seite neu oder prüfe, ob die JSON-Dateien korrekt auf GitHub liegen.</small>
+            </div>`;
+        }
+        $('#product').innerHTML = `<option>Fehler beim Laden</option>`;
     }
 }
 
@@ -107,7 +144,6 @@ function onProductChange() {
     refreshConfigUI();
     calc();
     
-    // Graph zentrieren bei neuem Produkt
     panZoom.zoom = 1; panZoom.x = 20; panZoom.y = 20;
     applyPanZoom();
 }
@@ -235,10 +271,10 @@ function renderNetwork() {
     html += '</div>';
     
     if (plan.warnings && plan.warnings.length > 0) {
-        html += `<div style="position:absolute; bottom:10px; left:10px; right:10px; background:rgba(239,68,68,0.2); color:#fca5a5; padding:10px; border-radius:6px; border:1px solid rgba(239,68,68,0.4); font-size:11px;">⚠ ${plan.warnings.map(E).join('<br>')}</div>`;
+        html += `<div style="position:absolute; bottom:10px; left:10px; right:10px; background:rgba(239,68,68,0.2); color:#fca5a5; padding:10px; border-radius:6px; border:1px solid rgba(239,68,68,0.4); font-size:11px; z-index: 10;">⚠ ${plan.warnings.map(E).join('<br>')}</div>`;
     }
 
-    $('#view').innerHTML = html;     applyPanZoom();      // Klick-Logik für individuelle Maschinen-Konfiguration     $$('#view .net-node').forEach(el => {
+    $('#view').innerHTML = html;     applyPanZoom();      $$('#view .net-node').forEach(el => {
         el.addEventListener('click', (e) => {
             e.stopPropagation();
             config.selectedNodeId = el.dataset.id;
@@ -341,7 +377,7 @@ function setupPanZoom() {
         panZoom.y = mouseY - (mouseY - panZoom.y) * (newZoom / panZoom.zoom);
         panZoom.zoom = newZoom;
         applyPanZoom();
-    });
+    }, { passive: false });
 
     viewEl.addEventListener('pointerdown', e => {
         if (view !== 'network' || e.target.closest('.net-node') || e.target.closest('button')) return;
@@ -378,7 +414,7 @@ function setupPanZoom() {
         const vRect = viewEl.getBoundingClientRect();
         const scaleX = (vRect.width - 40) / net.scrollWidth;
         const scaleY = (vRect.height - 40) / net.scrollHeight;
-        panZoom.zoom = Math.min(1, Math.min(scaleX, scaleY));
+        panZoom.zoom = Math.max(0.3, Math.min(1, Math.min(scaleX, scaleY)));
         panZoom.x = 20;
         panZoom.y = 20;
         applyPanZoom();
