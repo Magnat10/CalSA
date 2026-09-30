@@ -1,12 +1,16 @@
+// app.js
+
 import { normalize, catalog, category, solve, ITEM_NAMES } from './calculator.js';
 
 const $ = s => document.querySelector(s); const $$ = s => document.querySelectorAll(s);
 const E = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// Globaler Notfall-Scanner
+// Globaler Notfall-Scanner zur Fehleranzeige in der UI
 window.addEventListener('error', function(e) {
     const view = $('#view');
-    if(view) view.innerHTML = `<div style="padding:20px; color:#ef4444; background:#341919; border:1px solid #702f2f; border-radius:6px; margin:15px;"><b>System-Fehler:</b> ${e.message}</div>`;
+    if (view) {
+        view.innerHTML = `<div style="padding:20px; color:#ef4444; background:#341919; border:1px solid #702f2f; border-radius:6px; margin:15px;"><b>System-Fehler:</b> ${E(e.message)}</div>`;
+    }
 });
 
 let recipes = [];
@@ -24,6 +28,7 @@ const config = {
 
 const panZoom = { zoom: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 };
 
+// Cache-Buster-Fetch für GitHub Pages / Mobile Safari
 async function fetchWithFallback(url) {
     let res = await fetch(url).catch(() => null);
     if (!res || !res.ok) {
@@ -35,7 +40,7 @@ async function fetchWithFallback(url) {
 async function init() {
     try {
         const [recRes, iconRes, whiteRes] = await Promise.all([
-            fetchWithFallback('de.json'), // <--- Hier wurde auf de.json umgestellt
+            fetchWithFallback('de.json'),
             fetchWithFallback('icons.json'),
             fetchWithFallback('scim-item-whitelist.json')
         ]);
@@ -60,7 +65,7 @@ async function init() {
 
         items = allItems.filter(i => !hasWhitelist || allowedIds.has(i.id) || allowedNames.has(i.name));
 
-        if (items.length === 0) throw new Error("Nach dem Filtern sind keine Items mehr übrig.");
+        if (items.length === 0) throw new Error("Nach dem Filtern sind keine Items mehr verfügbar.");
 
         const catByName = new Map();
         Object.entries(catMap).forEach(([cat, names]) => names.forEach(n => catByName.set(n, cat)));
@@ -79,7 +84,7 @@ async function init() {
         bindEvents();
         setupPanZoom();
 
-        let defaultItem = items.find(x => x.id === 'Desc_IronPlateReinforced_C') || items[0];
+        const defaultItem = items.find(x => x.id === 'Desc_IronPlateReinforced_C') || items[0];
         if (defaultItem) {
             $('#product').value = defaultItem.id;
             $('#rate').value = 20;
@@ -94,7 +99,7 @@ async function init() {
                 <b>⚠ Initialisierungsfehler</b><br><br>${E(e.message)}
             </div>`;
         }
-        $('#product').innerHTML = `<option>Fehler</option>`;
+        $('#product').innerHTML = `<option>Fehler beim Laden</option>`;
     }
 }
 
@@ -137,7 +142,9 @@ function onProductChange() {
     config.selectedNodeId = $('#product').value;
     refreshConfigUI();
     calc();
-    panZoom.zoom = 1; panZoom.x = 20; panZoom.y = 20;
+    panZoom.zoom = 1; 
+    panZoom.x = 20; 
+    panZoom.y = 20;
     applyPanZoom();
 }
 
@@ -148,6 +155,7 @@ function refreshConfigUI() {
     $('#recipe').innerHTML = itemRecipes.map(r =>
         `<option value="${r.id}">${r.alternate ? 'Alternativ: ' : 'Standard: '}${E(r.name)}</option>`
     ).join('');
+
     if (config.recipeSelections[id]) {
         $('#recipe').value = config.recipeSelections[id];
     } else if (itemRecipes.length) {
@@ -162,11 +170,13 @@ function calc() {
     const id = $('#product').value;
     const rate = parseFloat($('#rate').value) || 0;
     if (!id || rate <= 0) return;
+
     plan = solve(id, rate, recipes, {
         maxBelt: $('#belt').value,
         recipeSelections: config.recipeSelections,
         machineConfig: config.machineConfig
     });
+
     updateDashStats();
     render();
     updatePreviews();
@@ -179,6 +189,7 @@ function updateDashStats() {
     $('#raw').textContent = plan.totals.rawRate.toFixed(1);
 }
 
+// Globales SVG-Fallback für HTML-onerror
 window.iconSvg = t => {
     if (t === 'ore') return `<svg viewBox="0 0 24 24"><path d="M7.2 3.5h9.6l4.7 8.1-4.7 8.1H7.2l-4.7-8.1 4.7-8.1Z"/><path d="m8.2 14.8 3.8-7 3.8 7H8.2Z"/></svg>`;
     if (t === 'machine') return `<svg viewBox="0 0 24 24"><path d="M3 20V9l5 3V8l5 3V4h4v5l4 2v9H3Z"/><path d="M7 16h2m3 0h2m3 0h2"/></svg>`;
@@ -186,10 +197,10 @@ window.iconSvg = t => {
 };
 
 function iconFor(id, type = 'item') {
-    const rec = iconRegistry[id];
     const cls = `ph icon-${type}`;
-    if (rec?.icon) return `<div class="${cls}"><img src="${E(rec.icon)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=window.iconSvg('${type}')"></div>`;
-    return `<div class="${cls}">${window.iconSvg(type)}</div>`;
+    const localIcon = iconRegistry[id]?.icon;
+    const src = localIcon || `https://static.satisfactory-calculator.com/img/game/256/${id}.png`;
+    return `<div class="${cls}"><img src="${E(src)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=window.iconSvg('${type}')"></div>`;
 }
 
 const nm = id => ITEM_NAMES[id] || items.find(x => x.id === id)?.name || id.replace(/^Desc_/, '').replace(/_C$/, '');
@@ -371,7 +382,7 @@ function setupPanZoom() {
         applyPanZoom();
     });
 
-    const endDrag = (e) => {
+    const endDrag = () => {
         if (!panZoom.isDragging) return;
         panZoom.isDragging = false;
         viewEl.releasePointerCapture(e.pointerId);
