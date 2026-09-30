@@ -1,17 +1,397 @@
-import{normalize,catalog,category,solve}from'./calculator.js';let recipes=[],items=[],plan,view='network',iconRegistry={};const $=s=>document.querySelector(s),E=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));async function init(){try{let r=await fetch('DocsRecipes.json');if(!r.ok)throw Error(`HTTP ${r.status}`);recipes=normalize(await r.json());try{const ir=await fetch('icons.json');if(!ir.ok)throw Error(`HTTP ${ir.status}`);iconRegistry=await ir.json()}catch(e){console.warn('icons.json konnte nicht geladen werden:',e);iconRegistry={}}const allItems=catalog(recipes);let whitelist=null;try{const wr=await fetch('scim-item-whitelist.json');if(!wr.ok)throw Error(`HTTP ${wr.status}`);whitelist=await wr.json()}catch(e){throw Error(`SCIM-Whitelist konnte nicht geladen werden: ${e.message}`)}const allowedNames=new Set(Object.values(whitelist.categories||{}).flat());const allowedIds=new Set(Object.values(whitelist.known_scim_ids||{}));items=allItems.filter(i=>allowedIds.has(i.id)||allowedNames.has(i.name));const catByName=new Map();Object.entries(whitelist.categories||{}).forEach(([cat,names])=>names.forEach(name=>catByName.set(name,cat)));const g={};items.forEach(i=>{const k=catByName.get(i.name)||category(i.name);(g[k]??=[]).push(i)});$('#product').innerHTML=Object.entries(g).sort().map(([k,v])=>`<optgroup label="${E(k)}">${v.map(i=>`<option value="${i.id}">${E(i.name)}</option>`).join('')}</optgroup>`).join('');bind();let d=items.find(x=>x.id==='Desc_IronPlateReinforced_C')||items[0];if(d){$('#product').value=d.id;$('#rate').value=20;fillRecipes();calc()}}catch(e){$('#view').innerHTML=`<div class="empty">DocsRecipes.json konnte nicht geladen werden: ${E(e.message)}</div>`}}function fillRecipes(){let i=items.find(x=>x.id===$('#product').value);$('#recipe').innerHTML=(i?.recipes||[]).map(r=>`<option value="${r.id}">${r.alternate?'Alternativ: ':'Standard: '}${E(r.name)}</option>`).join('')}function bind(){$('#product').onchange=()=>{fillRecipes();calc()};['rate','belt','recipe'].forEach(id=>{$('#'+id).oninput=calc;$('#'+id).onchange=calc});document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{view=b.dataset.view;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x===b));render()})}function calc(){let id=$('#product').value,rate=+$('#rate').value;if(!id||rate<=0)return;plan=solve(id,rate,recipes,{maxBelt:$('#belt').value,recipeSelections:{[id]:$('#recipe').value}});$('#machines').textContent=plan.totals.machineCount.toFixed(2)+'x';$('#power').textContent=plan.totals.power.toFixed(1)+' MW';$('#raw').textContent=Object.values(plan.totals.raw).reduce((a,b)=>a+b,0).toFixed(1);render();previews()}const iconSvg=t=>{const raw=t==="ore",machine=t==="machine";return raw?`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.5h9.6l4.7 8.1-4.7 8.1H7.2l-4.7-8.1 4.7-8.1Z"/><path d="m8.2 14.8 3.8-7 3.8 7H8.2Z"/></svg>`:machine?`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V9l5 3V8l5 3V4h4v5l4 2v9H3Z"/><path d="M7 16h2m3 0h2m3 0h2"/></svg>`:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 8 4.5v9L12 20l-8-4.5v-9L12 2Z"/><path d="m4.5 6.8 7.5 4.3 7.5-4.3M12 11v9"/></svg>`};
-const machineId=n=>n?.machine?.id||n?.id||'';
-const iconFor=(id,type='item')=>{const rec=iconRegistry[id];const cls=`ph icon-${type}`;if(rec?.icon)return`<div class="${cls}"><img src="${E(rec.icon)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=iconSvg('${type}')"></div>`;return`<div class="${cls}">${iconSvg(type)}</div>`};
-const ph=t=>iconFor('',t==='ORE'?'ore':t==='MK'?'machine':'item'),nm=id=>items.find(x=>x.id===id)?.name||id.replace(/^Desc_/,'').replace(/_C$/,'');function render(){if(!plan)return;let m={network:['⌘ Netzwerkgraph','Materialflüsse und Maschinen'],tree:['♜ Baumstruktur','Hierarchische Ansicht'],items:['◇ Gegenstände','Alle benötigten Items'],machines:['▥ Gebäude','Benötigte Maschinen']}[view];$('#view-title').textContent=m[0];$('#view-subtitle').textContent=m[1];({network,tree,itemsView,machinesView}[view==='items'?'itemsView':view==='machines'?'machinesView':view]||network)()}function network(){let levels={};plan.nodes.forEach(n=>(levels[n.depth]??=[]).push(n));let max=Math.max(...Object.keys(levels).map(Number)),h='<div class="network">';for(let d=max;d>=0;d--){h+=`<div class="level">${levels[d].map(n=>`<div class="net-node"><div class="round">${iconFor(n.itemId,n.type==='raw'?'ore':'item')}</div><div class="node-copy"><b>${E(n.name)}</b><span>${n.rate.toFixed(1)} / min</span>${n.type==='prod'?`<em>${n.count.toFixed(2)}x</em><small>${E(n.machine.name)}</small>`:'<small>Rohstoff</small>'}</div></div>`).join('')}</div>`;if(d){let es=plan.edges.filter(e=>plan.nodes.find(n=>n.id===e.from)?.depth===d),e=es[0];h+=`<div class="connector ${es.some(x=>x.bottleneck)?'danger':''}"><span>${e?`${e.flow.toFixed(1)} / min · Belt Mk.${e.mk}`:''}</span></div>`}}$('#view').innerHTML=h+'</div>'+(plan.warnings.length?`<div class="warning">⚠ ${plan.warnings.map(E).join(' · ')}</div>`:'')}function treeHTML(n,compact=false){return`<div class="tree-node"><div class="tree-row">${iconFor(n.itemId,n.type==='raw'?'ore':'item')}<div><b>${E(n.name)} <span>(${n.rate.toFixed(1)} / min)</span></b><small>${n.type==='prod'?`${n.count.toFixed(2)}x ${E(n.machine.name)}`:'Rohstoff'}</small></div></div>${!compact&&n.children?.length?`<div class="children">${n.children.map(x=>treeHTML(x)).join('')}</div>`:''}</div>`}function tree(){$('#view').innerHTML=`<div class="content-list tree-full">${treeHTML(plan.root)}</div>`}function itemRows(limit=99){return Object.entries(plan.totals.items).slice(0,limit).map(([id,v])=>`<div class="data-row">${iconFor(id,plan.totals.raw[id]?'ore':'item')}<b>${E(nm(id))}</b><span>${v.toFixed(1)}</span><small>${plan.totals.raw[id]?'Rohstoff':'Zwischenprodukt'}</small></div>`).join('')}function machineRows(limit=99){return Object.values(plan.totals.machines).slice(0,limit).map(m=>`<div class="data-row">${iconFor(m.id||m.machineId||m.name,'machine')}<b>${E(m.name)}</b><span>${m.count.toFixed(2)}x</span><small>${m.power.toFixed(0)} MW / ${m.powerTotal.toFixed(1)} MW</small></div>`).join('')}function itemsView(){$('#view').innerHTML=`<div class="content-list">${itemRows()}</div>`}function machinesView(){$('#view').innerHTML=`<div class="content-list">${machineRows()}</div>`}function previews(){$('#tree-preview').innerHTML=treeHTML(plan.root,true);$('#items-preview').innerHTML=itemRows(5);$('#machines-preview').innerHTML=machineRows(5)}init();
+import { normalize, catalog, category, solve } from './calculator.js';
 
-// V1 interaction layer: pan/zoom, per-item recipe + machine settings, node inspector.
-const v1={zoom:1,x:0,y:0,drag:false,px:0,py:0,selected:null,machineConfig:{}};
-function graphCanvas(){return document.querySelector('#view .network')}
-function applyViewport(){const el=graphCanvas();if(!el)return;el.style.transformOrigin='0 0';el.style.transform=`translate(${v1.x}px,${v1.y}px) scale(${v1.zoom})`;document.querySelector('#zoom-label').textContent=Math.round(v1.zoom*100)+'%'}
-function zoomBy(k,cx=0,cy=0){const old=v1.zoom,n=Math.max(.35,Math.min(2.5,old*k));v1.x=cx-(cx-v1.x)*(n/old);v1.y=cy-(cy-v1.y)*(n/old);v1.zoom=n;applyViewport()}
-function resetViewport(){v1.zoom=1;v1.x=v1.y=0;applyViewport()}
-function installPanZoom(){const v=document.querySelector('#view');if(!v)return;v.style.overflow='hidden';v.style.touchAction='none';v.onpointerdown=e=>{if(!graphCanvas()||e.target.closest('.node'))return;v1.drag=true;v1.px=e.clientX;v1.py=e.clientY;v.setPointerCapture(e.pointerId);v.style.cursor='grabbing'};v.onpointermove=e=>{if(!v1.drag)return;v1.x+=e.clientX-v1.px;v1.y+=e.clientY-v1.py;v1.px=e.clientX;v1.py=e.clientY;applyViewport()};v.onpointerup=v.onpointercancel=()=>{v1.drag=false;v.style.cursor='grab'};v.onwheel=e=>{if(!graphCanvas())return;e.preventDefault();const r=v.getBoundingClientRect();zoomBy(e.deltaY<0?1.12:.89,e.clientX-r.left,e.clientY-r.top)},{passive:false};document.querySelector('#zoom-in').onclick=()=>zoomBy(1.2);document.querySelector('#zoom-out').onclick=()=>zoomBy(.8);document.querySelector('#reset-view').onclick=resetViewport;document.querySelector('#fit').onclick=()=>{const el=graphCanvas();if(!el)return;const r=v.getBoundingClientRect();v1.zoom=Math.min(1,(r.width-30)/el.scrollWidth,(r.height-30)/el.scrollHeight);v1.x=15;v1.y=15;applyViewport()}}
-function configFor(id){return v1.machineConfig[id]||(v1.machineConfig[id]={tier:1,clock:100})}
-function refreshConfig(){const id=v1.selected||document.querySelector('#product')?.value;if(!id)return;const c=configFor(id);document.querySelector('#machine-tier').value=c.tier;document.querySelector('#clock').value=c.clock;const choices=(recipes||[]).filter(r=>r.products?.some(p=>p.item===id));const sel=document.querySelector('#recipe');if(sel){sel.innerHTML=choices.map((r,i)=>`<option value="${r.id}">${r.alternate?'Alternativ':'Standard'}: ${E(r.name)}</option>`).join('');const stored=recipeSelections?.[id];if(stored)sel.value=stored}}
-function hookConfig(){document.querySelector('#machine-tier').onchange=e=>{const id=v1.selected||document.querySelector('#product').value;configFor(id).tier=+e.target.value;calculateV1()};document.querySelector('#clock').onchange=e=>{const id=v1.selected||document.querySelector('#product').value;configFor(id).clock=+e.target.value;calculateV1()};document.querySelector('#recipe').onchange=e=>{const id=v1.selected||document.querySelector('#product').value;recipeSelections[id]=e.target.value;calculateV1()}}
-function calculateV1(){const p=document.querySelector('#product'),r=+document.querySelector('#rate').value||1,b=document.querySelector('#belt').value;plan=solve(p.value,r,recipes,{maxBelt:b,recipeSelections,machineConfig:v1.machineConfig});render();previews();document.querySelector('#machines').textContent=plan.totals.machineCount.toFixed(2)+'x';document.querySelector('#power').textContent=plan.totals.power.toFixed(1)+' MW';document.querySelector('#raw').textContent=plan.totals.rawRate.toFixed(1);setTimeout(()=>{installPanZoom();applyViewport();document.querySelectorAll('#view .node').forEach((el,i)=>{el.style.cursor='pointer';el.onclick=e=>{e.stopPropagation();const n=plan.nodes[i];if(!n||n.type!=='prod')return;v1.selected=n.itemId;refreshConfig();el.title=`${n.name}\n${n.machine.name} @ ${n.machine.clock}%\n${n.count.toFixed(2)} Maschinen`}})},0)}
-window.addEventListener('load',()=>{hookConfig();refreshConfig();setTimeout(()=>{installPanZoom();applyViewport()},50)});
+const $ = s => document.querySelector(s); const $$ = s => document.querySelectorAll(s);
+const E = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let recipes = [];
+let items = [];
+let plan = null;
+let view = 'network';
+let iconRegistry = {};
+let whitelist = null;
+
+// Speicher für individuelle Konfigurationen pro Item
+const config = {
+    selectedNodeId: null, 
+    recipeSelections: {},
+    machineConfig: {}
+};
+
+// State für Graph-Navigation
+const panZoom = { zoom: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 };
+
+async function init() {
+    try {
+        const [recRes, iconRes, whiteRes] = await Promise.all([
+            fetch('DocsRecipes.json').catch(() => null),
+            fetch('icons.json').catch(() => null),
+            fetch('scim-item-whitelist.json').catch(() => null)
+        ]);
+
+        if (!recRes || !recRes.ok) throw new Error("DocsRecipes.json fehlt oder fehlerhaft");
+        recipes = normalize(await recRes.json());
+        iconRegistry = iconRes && iconRes.ok ? await iconRes.json() : {};
+        whitelist = whiteRes && whiteRes.ok ? await whiteRes.json() : {};
+
+        const allItems = catalog(recipes);
+        const allowedNames = new Set(Object.values(whitelist.categories || {}).flat());
+        const allowedIds = new Set(Object.values(whitelist.known_scim_ids || {}));
+        items = allItems.filter(i => allowedIds.has(i.id) || allowedNames.has(i.name));
+
+        const catByName = new Map();
+        Object.entries(whitelist.categories || {}).forEach(([cat, names]) => names.forEach(n => catByName.set(n, cat)));
+        const grouped = {};
+        items.forEach(i => {
+            const k = catByName.get(i.name) || category(i.name);
+            (grouped[k] ??= []).push(i);
+        });
+
+        // Dropdown füllen
+        $('#product').innerHTML = Object.keys(grouped).sort().map(k =>
+            `<optgroup label="${E(k)}">${grouped[k].map(i => `<option value="${i.id}">${E(i.name)}</option>`).join('')}</optgroup>`
+        ).join('');
+
+        bindEvents();
+        setupPanZoom();
+
+        // Start-Item wählen
+        let defaultItem = items.find(x => x.id === 'Desc_IronPlateReinforced_C') || items[0];
+        if (defaultItem) {
+            $('#product').value = defaultItem.id;
+            $('#rate').value = 20;
+            config.selectedNodeId = defaultItem.id;
+            onProductChange();
+        }
+    } catch (e) {
+        $('#view').innerHTML = `<div style="padding: 20px; color: #ef4444;">Initialisierungsfehler: ${E(e.message)}</div>`;
+    }
+}
+
+function bindEvents() {
+    $('#product').addEventListener('change', onProductChange);
+    $('#rate').addEventListener('input', calc);
+    $('#belt').addEventListener('change', calc);
+
+    $('#recipe').addEventListener('change', (e) => {
+        if (config.selectedNodeId) {
+            config.recipeSelections[config.selectedNodeId] = e.target.value;
+            calc();
+        }
+    });
+
+    $('#machine-tier').addEventListener('change', (e) => {
+        if (config.selectedNodeId) {
+            if (!config.machineConfig[config.selectedNodeId]) config.machineConfig[config.selectedNodeId] = {};
+            config.machineConfig[config.selectedNodeId].tier = parseInt(e.target.value) || 1;
+            calc();
+        }
+    });
+
+    $('#clock').addEventListener('input', (e) => {
+        if (config.selectedNodeId) {
+            if (!config.machineConfig[config.selectedNodeId]) config.machineConfig[config.selectedNodeId] = {};
+            config.machineConfig[config.selectedNodeId].clock = parseInt(e.target.value) || 100;
+            calc();
+        }
+    });
+
+    $$('.tabs button').forEach(b => {         b.addEventListener('click', () => {             view = b.dataset.view;             $$
+('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+            render();
+        });
+    });
+}
+
+function onProductChange() {
+    config.selectedNodeId = $('#product').value;
+    refreshConfigUI();
+    calc();
+    
+    // Graph zentrieren bei neuem Produkt
+    panZoom.zoom = 1; panZoom.x = 20; panZoom.y = 20;
+    applyPanZoom();
+}
+
+function refreshConfigUI() {
+    const id = config.selectedNodeId;
+    if (!id) return;
+
+    const itemRecipes = recipes.filter(r => r.products?.some(p => p.item === id));
+    $('#recipe').innerHTML = itemRecipes.map(r =>
+        `<option value="${r.id}">${r.alternate ? 'Alternativ: ' : 'Standard: '}${E(r.name)}</option>`
+    ).join('');
+
+    if (config.recipeSelections[id]) {
+        $('#recipe').value = config.recipeSelections[id];
+    } else if (itemRecipes.length) {
+        $('#recipe').value = itemRecipes[0].id;
+    }
+
+    const mCfg = config.machineConfig[id] || { tier: 1, clock: 100 };
+    $('#machine-tier').value = mCfg.tier;
+    $('#clock').value = mCfg.clock;
+}
+
+function calc() {
+    const id = $('#product').value;
+    const rate = parseFloat($('#rate').value) || 0;
+    if (!id || rate <= 0) return;
+
+    plan = solve(id, rate, recipes, {
+        maxBelt: $('#belt').value,
+        recipeSelections: config.recipeSelections,
+        machineConfig: config.machineConfig
+    });
+
+    updateDashStats();
+    render();
+    updatePreviews();
+}
+
+function updateDashStats() {
+    if (!plan) return;
+    $('#machines').textContent = plan.totals.machineCount.toFixed(2) + 'x';
+    $('#power').textContent = plan.totals.power.toFixed(0) + ' MW';
+    $('#raw').textContent = plan.totals.rawRate.toFixed(1);
+}
+
+// --- ICON LOGIK ---
+const iconSvg = t => {
+    if (t === 'ore') return `<svg viewBox="0 0 24 24"><path d="M7.2 3.5h9.6l4.7 8.1-4.7 8.1H7.2l-4.7-8.1 4.7-8.1Z"/><path d="m8.2 14.8 3.8-7 3.8 7H8.2Z"/></svg>`;
+    if (t === 'machine') return `<svg viewBox="0 0 24 24"><path d="M3 20V9l5 3V8l5 3V4h4v5l4 2v9H3Z"/><path d="M7 16h2m3 0h2m3 0h2"/></svg>`;
+    return `<svg viewBox="0 0 24 24"><path d="m12 2 8 4.5v9L12 20l-8-4.5v-9L12 2Z"/><path d="m4.5 6.8 7.5 4.3 7.5-4.3M12 11v9"/></svg>`;
+};
+
+function iconFor(id, type = 'item') {
+    const rec = iconRegistry[id];
+    const cls = `ph icon-${type}`;
+    if (rec?.icon) return `<div class="${cls}"><img src="${E(rec.icon)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=iconSvg('${type}')"></div>`;
+    return `<div class="${cls}">${iconSvg(type)}</div>`;
+}
+
+const nm = id => items.find(x => x.id === id)?.name || id.replace(/^Desc_/, '').replace(/_C$/, '');
+
+// --- RENDERER ---
+function render() {
+    if (!plan) return;
+    
+    const titles = {
+        network: ['⌘ Netzwerkgraph', 'Materialflüsse und Maschinen'],
+        tree: ['♜ Baumstruktur', 'Hierarchische Ansicht'],
+        items: ['◇ Gegenstände', 'Alle benötigten Items'],
+        machines: ['▥ Gebäude', 'Benötigte Maschinen']
+    };
+    $('#view-title').textContent = titles[view][0];
+    $('#view-subtitle').textContent = titles[view][1];
+
+    $('.graph-tools').style.display = (view === 'network') ? 'flex' : 'none';$('#legend').style.display = (view === 'network') ? 'flex' : 'none';
+
+    if (view === 'network') renderNetwork();
+    else if (view === 'tree') renderTree();
+    else if (view === 'items') renderItems();
+    else if (view === 'machines') renderMachines();
+}
+
+function renderNetwork() {
+    const levels = {};
+    plan.nodes.forEach(n => {
+        if (!levels[n.depth]) levels[n.depth] = [];
+        levels[n.depth].push(n);
+    });
+
+    const max = Math.max(0, ...Object.keys(levels).map(Number));
+    let html = '<div class="network">';
+    
+    for (let d = max; d >= 0; d--) {
+        if (!levels[d]) continue;
+        
+        html += `<div class="level">`;
+        levels[d].forEach(n => {
+            const isSelected = n.itemId === config.selectedNodeId;
+            const activeStyle = isSelected ? 'box-shadow: 0 0 0 2px var(--orange); border-color: var(--orange);' : '';
+            
+            html += `
+            <div class="net-node" data-id="${n.itemId}" style="cursor:pointer; ${activeStyle}">
+                <div class="round">${iconFor(n.itemId, n.type === 'raw' ? 'ore' : 'item')}</div>
+                <div class="node-copy">
+                    <b>${E(n.name)}</b>
+                    <span>${n.rate.toFixed(1)} / min</span>
+                    ${n.type === 'prod' ? `<em>${n.count.toFixed(2)}x</em><small>${E(n.machine.name)}</small>` : '<small>Rohstoff</small>'}
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+        
+        if (d > 0) {
+            const depthEdges = plan.edges.filter(e => {
+                const fromNode = plan.nodes.find(x => x.id === e.from);
+                return fromNode && fromNode.depth === d;
+            });
+            const hasDanger = depthEdges.some(x => x.bottleneck);
+            const e = depthEdges[0]; 
+            html += `<div class="connector ${hasDanger ? 'danger' : ''}"><span>${e ? `${e.flow.toFixed(1)} / min · Mk.${e.mk}` : ''}</span></div>`;
+        }
+    }
+    html += '</div>';
+    
+    if (plan.warnings && plan.warnings.length > 0) {
+        html += `<div style="position:absolute; bottom:10px; left:10px; right:10px; background:rgba(239,68,68,0.2); color:#fca5a5; padding:10px; border-radius:6px; border:1px solid rgba(239,68,68,0.4); font-size:11px;">⚠ ${plan.warnings.map(E).join('<br>')}</div>`;
+    }
+
+    $('#view').innerHTML = html;     applyPanZoom();      // Klick-Logik für individuelle Maschinen-Konfiguration     $$('#view .net-node').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            config.selectedNodeId = el.dataset.id;
+            refreshConfigUI();
+            renderNetwork();
+        });
+    });
+}
+
+function renderTreeHTML(n, isRoot = false) {
+    if (!n) return '';
+    let html = `
+    <div class="tree-node" style="margin-top: ${isRoot ? '0' : '10px'};">
+        <div class="tree-row">
+            ${iconFor(n.itemId, n.type === 'raw' ? 'ore' : 'item')}
+            <div>
+                <b>${E(n.name)} <span>(${n.rate.toFixed(1)} / min)</span></b>
+                <small>${n.type === 'prod' ? `${n.count.toFixed(2)}x${E(n.machine?.name || 'Machine')}` : (n.name.includes('Kreislauf') ? 'Kreislauf' : 'Rohstoff')}</small>
+            </div>
+        </div>`;
+        
+    if (n.children && n.children.length > 0) {
+        html += `<div class="children">`;
+        n.children.forEach(c => html += renderTreeHTML(c));
+        html += `</div>`;
+    }
+    html += `</div>`;
+    return html;
+}
+
+function renderTree() {
+    $('#view').innerHTML = `<div style="padding:15px;">${renderTreeHTML(plan.root, true)}</div>`;
+}
+
+function renderItems() {
+    const rows = Object.entries(plan.totals.items).sort((a,b)=>b[1]-a[1]).map(([id, v]) => `
+        <div class="data-row">
+            <div style="display:flex; align-items:center; gap:10px;">
+                ${iconFor(id, plan.totals.raw[id] ? 'ore' : 'item')}
+                <b>${E(nm(id))}</b>
+            </div>
+            <div style="text-align:right;">
+                <span>${v.toFixed(1)}</span>
+                <br><small>${plan.totals.raw[id] ? 'Rohstoff' : 'Zwischenprodukt'}</small>
+            </div>
+        </div>
+    `).join('');
+    $('#view').innerHTML = `<div style="padding:10px;">${rows}</div>`;
+}
+
+function renderMachines() {
+    const rows = Object.values(plan.totals.machines).sort((a,b)=>b.count-a.count).map(m => `
+        <div class="data-row">
+            <div style="display:flex; align-items:center; gap:10px;">
+                ${iconFor(m.id || m.name, 'machine')}
+                <b>${E(m.name)}</b>
+            </div>
+            <div style="text-align:right;">
+                <span>${m.count.toFixed(2)}x</span>
+                <br><small>${m.power.toFixed(0)} MW (Total: ${m.powerTotal.toFixed(1)} MW)</small>
+            </div>
+        </div>
+    `).join('');
+    $('#view').innerHTML = `<div style="padding:10px;">${rows}</div>`;
+}
+
+function updatePreviews() {
+    $('#tree-preview').innerHTML = renderTreeHTML(plan.root, true);
+    
+    const itemRows = Object.entries(plan.totals.items).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id, v]) => `
+        <div class="data-row" style="padding:4px 0; border: none;">
+            <b>${E(nm(id))}</b><span>${v.toFixed(1)}</span>
+        </div>
+    `).join('');
+    $('#items-preview').innerHTML = itemRows || '<div style="color:var(--muted); padding:10px;">Keine Items</div>';
+
+    const machRows = Object.values(plan.totals.machines).sort((a,b)=>b.count-a.count).slice(0,5).map(m => `
+        <div class="data-row" style="padding:4px 0; border: none;">
+            <b>${E(m.name)}</b><span>${m.count.toFixed(2)}x</span>
+        </div>
+    `).join('');
+    $('#machines-preview').innerHTML = machRows || '<div style="color:var(--muted); padding:10px;">Keine Maschinen</div>';
+}
+
+// --- PAN & ZOOM GRAPH ---
+function setupPanZoom() {
+    const viewEl = $('#view');
+    
+    viewEl.addEventListener('wheel', e => {
+        if (view !== 'network') return;
+        e.preventDefault();
+        const rect = viewEl.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
+        const newZoom = Math.max(0.3, Math.min(2.5, panZoom.zoom * zoomFactor));
+        
+        panZoom.x = mouseX - (mouseX - panZoom.x) * (newZoom / panZoom.zoom);
+        panZoom.y = mouseY - (mouseY - panZoom.y) * (newZoom / panZoom.zoom);
+        panZoom.zoom = newZoom;
+        applyPanZoom();
+    });
+
+    viewEl.addEventListener('pointerdown', e => {
+        if (view !== 'network' || e.target.closest('.net-node') || e.target.closest('button')) return;
+        panZoom.isDragging = true;
+        panZoom.startX = e.clientX - panZoom.x;
+        panZoom.startY = e.clientY - panZoom.y;
+        viewEl.setPointerCapture(e.pointerId);
+        viewEl.style.cursor = 'grabbing';
+    });
+
+    viewEl.addEventListener('pointermove', e => {
+        if (!panZoom.isDragging) return;
+        panZoom.x = e.clientX - panZoom.startX;
+        panZoom.y = e.clientY - panZoom.startY;
+        applyPanZoom();
+    });
+
+    const endDrag = (e) => {
+        if (!panZoom.isDragging) return;
+        panZoom.isDragging = false;
+        viewEl.releasePointerCapture(e.pointerId);
+        viewEl.style.cursor = 'auto';
+    };
+
+    viewEl.addEventListener('pointerup', endDrag);
+    viewEl.addEventListener('pointercancel', endDrag);
+
+    $('#zoom-in').addEventListener('click', () => { panZoom.zoom = Math.min(2.5, panZoom.zoom * 1.2); applyPanZoom(); });
+    $('#zoom-out').addEventListener('click', () => { panZoom.zoom = Math.max(0.3, panZoom.zoom * 0.8); applyPanZoom(); });
+    $('#reset-view').addEventListener('click', () => { panZoom.zoom = 1; panZoom.x = 20; panZoom.y = 20; applyPanZoom(); });
+    $('#fit').addEventListener('click', () => {
+        const net = $('.network');
+        if (!net) return;
+        const vRect = viewEl.getBoundingClientRect();
+        const scaleX = (vRect.width - 40) / net.scrollWidth;
+        const scaleY = (vRect.height - 40) / net.scrollHeight;
+        panZoom.zoom = Math.min(1, Math.min(scaleX, scaleY));
+        panZoom.x = 20;
+        panZoom.y = 20;
+        applyPanZoom();
+    });
+}
+
+function applyPanZoom() {
+    const net = $('.network');
+    if (net) {
+        net.style.transformOrigin = '0 0';
+        net.style.transform = `translate(${panZoom.x}px, ${panZoom.y}px) scale(${panZoom.zoom})`;
+    }
+    $('#zoom-label').textContent = Math.round(panZoom.zoom * 100) + '%';
+}
+
+window.addEventListener('load', init);
