@@ -5,7 +5,7 @@ import { normalize, catalog, category, solve, ITEM_NAMES } from './calculator.js
 const $ = s => document.querySelector(s); const $$ = s => document.querySelectorAll(s);
 const E = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// Globaler Notfall-Scanner zur Fehleranzeige in der UI
+// Globaler Notfall-Scanner
 window.addEventListener('error', function(e) {
     const view = $('#view');
     if (view) {
@@ -28,7 +28,6 @@ const config = {
 
 const panZoom = { zoom: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 };
 
-// Cache-Buster-Fetch für GitHub Pages / Mobile Safari
 async function fetchWithFallback(url) {
     let res = await fetch(url).catch(() => null);
     if (!res || !res.ok) {
@@ -39,6 +38,7 @@ async function fetchWithFallback(url) {
 
 async function init() {
     try {
+        // Wir laden jetzt explizit de.json statt der alten DocsRecipes.json
         const [recRes, iconRes, whiteRes] = await Promise.all([
             fetchWithFallback('de.json'),
             fetchWithFallback('icons.json'),
@@ -189,7 +189,6 @@ function updateDashStats() {
     $('#raw').textContent = plan.totals.rawRate.toFixed(1);
 }
 
-// Globales SVG-Fallback für HTML-onerror
 window.iconSvg = t => {
     if (t === 'ore') return `<svg viewBox="0 0 24 24"><path d="M7.2 3.5h9.6l4.7 8.1-4.7 8.1H7.2l-4.7-8.1 4.7-8.1Z"/><path d="m8.2 14.8 3.8-7 3.8 7H8.2Z"/></svg>`;
     if (t === 'machine') return `<svg viewBox="0 0 24 24"><path d="M3 20V9l5 3V8l5 3V4h4v5l4 2v9H3Z"/><path d="M7 16h2m3 0h2m3 0h2"/></svg>`;
