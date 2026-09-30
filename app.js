@@ -3,7 +3,7 @@ import { normalize, catalog, category, solve } from './calculator.js';
 const $ = s => document.querySelector(s); const $$ = s => document.querySelectorAll(s);
 const E = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// Globaler Notfall-Scanner: Fängt Syntax- oder Modulfehler ab und druckt sie auf den Bildschirm
+// Globaler Notfall-Scanner
 window.addEventListener('error', function(e) {
     const view = $('#view');
     if(view) view.innerHTML = `<div style="padding:20px; color:#ef4444; background:#341919; border:1px solid #702f2f; border-radius:6px; margin:15px;"><b>System-Fehler:</b> ${e.message}</div>`;
@@ -24,7 +24,6 @@ const config = {
 
 const panZoom = { zoom: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 };
 
-// Auto-Cache-Buster: Umgeht den aggressiven Safari/GitHub-Pages Cache
 async function fetchWithFallback(url) {
     let res = await fetch(url).catch(() => null);
     if (!res || !res.ok) {
@@ -41,19 +40,18 @@ async function init() {
             fetchWithFallback('scim-item-whitelist.json')
         ]);
 
-        if (!recRes || !recRes.ok) throw new Error("DocsRecipes.json konnte nicht geladen werden (evtl. 404 Fehler). Bitte prüfe den Dateinamen auf GitHub.");
+        if (!recRes || !recRes.ok) throw new Error("DocsRecipes.json konnte nicht geladen werden.");
         
         const rawData = await recRes.json();
         recipes = normalize(rawData);
         
-        if (!recipes || recipes.length === 0) throw new Error("Die Rezept-Datenbank ist leer oder fehlerhaft formatiert.");
+        if (!recipes || recipes.length === 0) throw new Error("Die Rezept-Datenbank ist leer oder fehlerhaft.");
 
         iconRegistry = iconRes && iconRes.ok ? await iconRes.json() : {};
         whitelist = whiteRes && whiteRes.ok ? await whiteRes.json() : null;
 
         const allItems = catalog(recipes);
 
-        // Sichere Whitelist-Logik: Falls Whitelist fehlt, werden alle Items zugelassen
         const catMap = whitelist && whitelist.categories ? whitelist.categories : {};
         const idMap = whitelist && whitelist.known_scim_ids ? whitelist.known_scim_ids : {};
         const allowedNames = new Set(Object.values(catMap).flat());
@@ -62,7 +60,7 @@ async function init() {
 
         items = allItems.filter(i => !hasWhitelist || allowedIds.has(i.id) || allowedNames.has(i.name));
 
-        if (items.length === 0) throw new Error("Nach dem Filtern sind keine Items mehr übrig. Datenbasis defekt.");
+        if (items.length === 0) throw new Error("Nach dem Filtern sind keine Items mehr übrig.");
 
         const catByName = new Map();
         Object.entries(catMap).forEach(([cat, names]) => names.forEach(n => catByName.set(n, cat)));
@@ -74,7 +72,6 @@ async function init() {
             grouped[k].push(i);
         });
 
-        // Dropdown füllen
         $('#product').innerHTML = Object.keys(grouped).sort().map(k =>
             `<optgroup label="${E(k)}">${grouped[k].map(i => `<option value="${i.id}">${E(i.name)}</option>`).join('')}</optgroup>`
         ).join('');
@@ -82,7 +79,6 @@ async function init() {
         bindEvents();
         setupPanZoom();
 
-        // Start-Item wählen
         let defaultItem = items.find(x => x.id === 'Desc_IronPlateReinforced_C') || items[0];
         if (defaultItem) {
             $('#product').value = defaultItem.id;
@@ -92,15 +88,13 @@ async function init() {
         }
 
     } catch (e) {
-        // Fehler direkt in der UI anzeigen, damit die App nicht einfach stehen bleibt
         const viewEl = $('#view');
         if (viewEl) {
             viewEl.innerHTML = `<div style="padding: 20px; margin: 15px; color: #ffbbb4; background: #341919; border: 1px solid #702f2f; border-radius: 8px;">
-                <b>⚠ Initialisierungsfehler</b><br><br>${E(e.message)}<br><br>
-                <small>Tipp: Lade die Seite neu oder prüfe, ob die JSON-Dateien korrekt auf GitHub liegen.</small>
+                <b>⚠ Initialisierungsfehler</b><br><br>${E(e.message)}
             </div>`;
         }
-        $('#product').innerHTML = `<option>Fehler beim Laden</option>`;
+        $('#product').innerHTML = `<option>Fehler</option>`;
     }
 }
 
@@ -143,7 +137,6 @@ function onProductChange() {
     config.selectedNodeId = $('#product').value;
     refreshConfigUI();
     calc();
-    
     panZoom.zoom = 1; panZoom.x = 20; panZoom.y = 20;
     applyPanZoom();
 }
@@ -151,18 +144,15 @@ function onProductChange() {
 function refreshConfigUI() {
     const id = config.selectedNodeId;
     if (!id) return;
-
     const itemRecipes = recipes.filter(r => r.products?.some(p => p.item === id));
     $('#recipe').innerHTML = itemRecipes.map(r =>
         `<option value="${r.id}">${r.alternate ? 'Alternativ: ' : 'Standard: '}${E(r.name)}</option>`
     ).join('');
-
     if (config.recipeSelections[id]) {
         $('#recipe').value = config.recipeSelections[id];
     } else if (itemRecipes.length) {
         $('#recipe').value = itemRecipes[0].id;
     }
-
     const mCfg = config.machineConfig[id] || { tier: 1, clock: 100 };
     $('#machine-tier').value = mCfg.tier;
     $('#clock').value = mCfg.clock;
@@ -172,13 +162,11 @@ function calc() {
     const id = $('#product').value;
     const rate = parseFloat($('#rate').value) || 0;
     if (!id || rate <= 0) return;
-
     plan = solve(id, rate, recipes, {
         maxBelt: $('#belt').value,
         recipeSelections: config.recipeSelections,
         machineConfig: config.machineConfig
     });
-
     updateDashStats();
     render();
     updatePreviews();
@@ -191,8 +179,9 @@ function updateDashStats() {
     $('#raw').textContent = plan.totals.rawRate.toFixed(1);
 }
 
-// --- ICON LOGIK ---
-const iconSvg = t => {
+// --- ICON LOGIK FIX ---
+// Wir binden die Funktion an das globale window-Objekt, damit der HTML-Befehl `onerror` sie finden kann!
+window.iconSvg = t => {
     if (t === 'ore') return `<svg viewBox="0 0 24 24"><path d="M7.2 3.5h9.6l4.7 8.1-4.7 8.1H7.2l-4.7-8.1 4.7-8.1Z"/><path d="m8.2 14.8 3.8-7 3.8 7H8.2Z"/></svg>`;
     if (t === 'machine') return `<svg viewBox="0 0 24 24"><path d="M3 20V9l5 3V8l5 3V4h4v5l4 2v9H3Z"/><path d="M7 16h2m3 0h2m3 0h2"/></svg>`;
     return `<svg viewBox="0 0 24 24"><path d="m12 2 8 4.5v9L12 20l-8-4.5v-9L12 2Z"/><path d="m4.5 6.8 7.5 4.3 7.5-4.3M12 11v9"/></svg>`;
@@ -201,8 +190,8 @@ const iconSvg = t => {
 function iconFor(id, type = 'item') {
     const rec = iconRegistry[id];
     const cls = `ph icon-${type}`;
-    if (rec?.icon) return `<div class="${cls}"><img src="${E(rec.icon)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=iconSvg('${type}')"></div>`;
-    return `<div class="${cls}">${iconSvg(type)}</div>`;
+    if (rec?.icon) return `<div class="${cls}"><img src="${E(rec.icon)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=window.iconSvg('${type}')"></div>`;
+    return `<div class="${cls}">${window.iconSvg(type)}</div>`;
 }
 
 const nm = id => items.find(x => x.id === id)?.name || id.replace(/^Desc_/, '').replace(/_C$/, '');
@@ -210,7 +199,6 @@ const nm = id => items.find(x => x.id === id)?.name || id.replace(/^Desc_/, '').
 // --- RENDERER ---
 function render() {
     if (!plan) return;
-    
     const titles = {
         network: ['⌘ Netzwerkgraph', 'Materialflüsse und Maschinen'],
         tree: ['♜ Baumstruktur', 'Hierarchische Ansicht'],
@@ -219,7 +207,6 @@ function render() {
     };
     $('#view-title').textContent = titles[view][0];
     $('#view-subtitle').textContent = titles[view][1];
-
     $('.graph-tools').style.display = (view === 'network') ? 'flex' : 'none';$('#legend').style.display = (view === 'network') ? 'flex' : 'none';
 
     if (view === 'network') renderNetwork();
@@ -240,12 +227,10 @@ function renderNetwork() {
     
     for (let d = max; d >= 0; d--) {
         if (!levels[d]) continue;
-        
         html += `<div class="level">`;
         levels[d].forEach(n => {
             const isSelected = n.itemId === config.selectedNodeId;
             const activeStyle = isSelected ? 'box-shadow: 0 0 0 2px var(--orange); border-color: var(--orange);' : '';
-            
             html += `
             <div class="net-node" data-id="${n.itemId}" style="cursor:pointer; ${activeStyle}">
                 <div class="round">${iconFor(n.itemId, n.type === 'raw' ? 'ore' : 'item')}</div>
@@ -257,7 +242,6 @@ function renderNetwork() {
             </div>`;
         });
         html += `</div>`;
-        
         if (d > 0) {
             const depthEdges = plan.edges.filter(e => {
                 const fromNode = plan.nodes.find(x => x.id === e.from);
@@ -343,7 +327,6 @@ function renderMachines() {
 
 function updatePreviews() {
     $('#tree-preview').innerHTML = renderTreeHTML(plan.root, true);
-    
     const itemRows = Object.entries(plan.totals.items).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id, v]) => `
         <div class="data-row" style="padding:4px 0; border: none;">
             <b>${E(nm(id))}</b><span>${v.toFixed(1)}</span>
@@ -359,20 +342,16 @@ function updatePreviews() {
     $('#machines-preview').innerHTML = machRows || '<div style="color:var(--muted); padding:10px;">Keine Maschinen</div>';
 }
 
-// --- PAN & ZOOM GRAPH ---
 function setupPanZoom() {
     const viewEl = $('#view');
-    
     viewEl.addEventListener('wheel', e => {
         if (view !== 'network') return;
         e.preventDefault();
         const rect = viewEl.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        
         const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
         const newZoom = Math.max(0.3, Math.min(2.5, panZoom.zoom * zoomFactor));
-        
         panZoom.x = mouseX - (mouseX - panZoom.x) * (newZoom / panZoom.zoom);
         panZoom.y = mouseY - (mouseY - panZoom.y) * (newZoom / panZoom.zoom);
         panZoom.zoom = newZoom;
